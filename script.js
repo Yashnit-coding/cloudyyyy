@@ -1,4 +1,3 @@
-
 /* =========================================
    Cloudyyyy — INTERACTIVE JAVASCRIPT
    Theme, portfolio filters, navigation,
@@ -192,6 +191,15 @@ document.addEventListener("DOMContentLoaded", () => {
       (entries, observer) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            const siblings = Array.from(
+              entry.target.parentElement.children
+            ).filter((item) => item.classList.contains("reveal"));
+            const position = Math.max(siblings.indexOf(entry.target), 0);
+
+            entry.target.style.setProperty(
+              "--reveal-delay",
+              `${Math.min(position, 6) * 0.07}s`
+            );
             entry.target.classList.add("visible");
             observer.unobserve(entry.target);
           }
@@ -212,6 +220,56 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+
+  // ---------------------------------------
+  // 4B. ACTIVE NAV LINK WHILE SCROLLING
+  // ---------------------------------------
+
+  const spyLinks = Array.from(
+    document.querySelectorAll('.site-header nav a[href^="#"]:not(.btn)')
+  );
+
+  function setActiveLink(id) {
+    spyLinks.forEach((link) => {
+      const isActive = link.getAttribute("href") === `#${id}`;
+      link.classList.toggle("active", isActive);
+
+      if (isActive) {
+        link.setAttribute("aria-current", "true");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    });
+  }
+
+  const spySections = spyLinks
+    .map((link) => document.querySelector(link.getAttribute("href")))
+    .filter(Boolean);
+
+  if ("IntersectionObserver" in window && spySections.length) {
+    const spyObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveLink(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-40% 0px -55% 0px" }
+    );
+
+    spySections.forEach((section) => spyObserver.observe(section));
+
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (window.scrollY < 200) {
+          setActiveLink("");
+        }
+      },
+      { passive: true }
+    );
+  }
 
   // ---------------------------------------
   // 5. CONTACT FORM — EMAILJS
@@ -407,6 +465,81 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (window.location.hash !== targetId) {
         history.replaceState(null, "", targetId);
+      }
+    });
+  });
+
+  // ---------------------------------------
+  // 9. CONTACT DETAILS (WhatsApp, call, email)
+  // ---------------------------------------
+  // Edit ONLY this block. Buttons stay hidden until real values are added.
+
+  const CONTACT = {
+    whatsapp: "919646360664", // country code + number, no + or spaces
+    phone: "+91 9646360664", // shown to visitors
+    email: "yashnitsingh000@gmail.com",
+    whatsappMessage: "Hi! I found your website and want to discuss a project."
+  };
+
+  function isReal(value) {
+    return Boolean(value) && !/X{3,}|yourdomain/i.test(value);
+  }
+
+  const contactTargets = {
+    whatsapp: isReal(CONTACT.whatsapp)
+      ? `https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(CONTACT.whatsappMessage)}`
+      : "",
+    phone: isReal(CONTACT.phone)
+      ? `tel:${CONTACT.phone.replace(/[^\d+]/g, "")}`
+      : "",
+    email: isReal(CONTACT.email) ? `mailto:${CONTACT.email}` : ""
+  };
+
+  let anyContact = false;
+
+  document.querySelectorAll("[data-contact]").forEach((element) => {
+    const href = contactTargets[element.dataset.contact];
+
+    if (!href) return;
+
+    element.setAttribute("href", href);
+    element.hidden = false;
+    anyContact = true;
+  });
+
+  if (contactTargets.phone) {
+    document.querySelectorAll('[data-contact-text="phone"]').forEach((el) => {
+      el.textContent = CONTACT.phone;
+    });
+  }
+
+  if (contactTargets.email) {
+    document.querySelectorAll('[data-contact-text="email"]').forEach((el) => {
+      el.textContent = CONTACT.email;
+    });
+  }
+
+  const fabGroup = document.getElementById("fab-group");
+
+  if (fabGroup && (contactTargets.whatsapp || contactTargets.phone)) {
+    fabGroup.hidden = false;
+  }
+
+  // ---------------------------------------
+  // 7B. PRICING BUTTONS PRE-FILL THE FORM
+  // ---------------------------------------
+
+  document.querySelectorAll("[data-plan]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const serviceSelect = document.getElementById("t");
+      const messageBox = document.getElementById("m");
+
+      if (serviceSelect && button.dataset.service) {
+        serviceSelect.value = button.dataset.service;
+      }
+
+      if (messageBox && messageBox.value.trim() === "") {
+        messageBox.value = `I'm interested in the ${button.dataset.plan} package.`;
       }
     });
   });
